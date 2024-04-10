@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maintenance Fee Calculator</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; }
+        input[type="number"], button { width: 100%; padding: 10px; box-sizing: border-box; border-radius: 5px; border: 1px solid #ddd; }
+        button { background-color: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        #chartContainer { margin-top: 20px; width: 100%; height: 400px; }
+        canvas { width: 100% !important; height: auto !important; }
+        .error, .success { color: red; margin-bottom: 10px; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+
+<h2>Time Share Maintenance Fee Calculator</h2>
+
+<div class="form-group"><label for="maintenanceFee">* Maintenance Fee (1 Timeshare):</label><input type="number" id="maintenanceFee" value="3500"></div>
+<div class="form-group"><label for="propertyTax">Property Tax (In Dollars):</label><input type="number" id="propertyTax" value="0"></div>
+<div class="form-group"><label for="membershipFee">RCI/II Membership Fee:</label><input type="number" id="membershipFee" value="0"></div>
+<div class="form-group"><label for="exchangeFee">RCI/II Exchange Fee:</label><input type="number" id="exchangeFee" value="200"></div>
+<div class="form-group"><label for="priceIncrease">Anticipated Price Increase %:</label><input type="number" id="priceIncrease" value="5" step="0.01"></div>
+<button onclick="calculateProjection()">Calculate 20-Year Projection</button>
+
+<div id="results"></div>
+<div class="error" id="error"></div>
+<div class="success" id="success"></div>
+<div id="chartContainer"><canvas id="myChart"></canvas></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function loadSavedInputs() {
+    document.getElementById('maintenanceFee').value = localStorage.getItem('maintenanceFee') || '3500';
+    document.getElementById('propertyTax').value = localStorage.getItem('propertyTax') || '0';
+    document.getElementById('membershipFee').value = localStorage.getItem('membershipFee') || '0';
+    document.getElementById('exchangeFee').value = localStorage.getItem('exchangeFee') || '200';
+    document.getElementById('priceIncrease').value = localStorage.getItem('priceIncrease') || '5';
+}
+function saveInputs() {
+    localStorage.setItem('maintenanceFee', document.getElementById('maintenanceFee').value);
+    localStorage.setItem('propertyTax', document.getElementById('propertyTax').value);
+    localStorage.setItem('membershipFee', document.getElementById('membershipFee').value);
+    localStorage.setItem('exchangeFee', document.getElementById('exchangeFee').value);
+    localStorage.setItem('priceIncrease', document.getElementById('priceIncrease').value);
+}
+function validateInputs() {
+    const maintenanceFee = parseFloat(document.getElementById('maintenanceFee').value);
+    const priceIncrease = parseFloat(document.getElementById('priceIncrease').value);
+    document.getElementById('error').innerText = '';
+    if (isNaN(maintenanceFee) || maintenanceFee <= 0 || isNaN(priceIncrease) || priceIncrease < 0) {
+        document.getElementById('error').innerText = 'Please enter valid numbers. Maintenance Fee and Price Increase % must be positive.';
+        return false;
+    }
+    return true;
+}
+function calculateProjection() {
+    if (!validateInputs()) return;
+    saveInputs();
+    const maintenanceFee = parseFloat(document.getElementById('maintenanceFee').value);
+    const propertyTax = parseFloat(document.getElementById('propertyTax').value);
+    const membershipFee = parseFloat(document.getElementById('membershipFee').value);
+    const exchangeFee = parseFloat(document.getElementById('exchangeFee').value);
+    const priceIncrease = parseFloat(document.getElementById('priceIncrease').value) / 100;
+    let labels = [], data = [], totalFee = maintenanceFee + propertyTax + membershipFee + exchangeFee;
+    for (let year = 1; year <= 20; year++) {
+        totalFee *= (1 + priceIncrease);
+        labels.push(`Year ${year}`);
+        data.push(totalFee);
+    }
+    const ctx = document.getElementById('myChart').getContext('2d');
+    if (window.myChart instanceof Chart) window.myChart.destroy();
+    window.myChart = new Chart(ctx, {
+        type: 'line', data: {
+            labels: labels,
+            datasets: [{
+                label: 'Projected Maintenance Fee Over 20 Years',
+                data: data,
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: { y: { beginAtZero: true, ticks: { callback: value => `$${value.toFixed(2)}` } } },
+            tooltips: { callbacks: { label: (tooltipItem, chart) => `${chart.datasets[tooltipItem.datasetIndex].label}: $${Number(tooltipItem.yLabel).toFixed(2)}` } }
+        }
+    });
+    document.getElementById('success').innerText = 'Projection calculated successfully!';
+}
+window.onload = loadSavedInputs;
+</script>
+</body>
+</html>
